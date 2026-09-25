@@ -141,6 +141,192 @@
         </div>
       </section>
 
+<section id="pcloud-tracks" class="pcloud-player">
+  <h2 class="pcloud-player__heading">LISTEN &amp; DOWNLOAD</h2>
+  <div id="pcloud-player-list" class="pcloud-player__list">
+    <p class="pcloud-player__status">Loading tracks…</p>
+  </div>
+</section>
+
+<style>
+  .pcloud-player {
+    max-width: 720px;
+    margin: 4rem auto;
+    padding: 0 1.25rem;
+    font-family: inherit;
+    color: #FFC928;
+  }
+  .pcloud-player__heading {
+    text-align: center;
+    letter-spacing: 0.08em;
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+    color: #FFC928;
+  }
+  .pcloud-player__status {
+    text-align: center;
+    opacity: 0.7;
+    font-size: 0.9rem;
+  }
+  .pcloud-player__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .track-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: #003d25;
+    border: 1px solid rgba(255, 201, 40, 0.25);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+  }
+  .track-row .track-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.95rem;
+  }
+  .track-row button,
+  .track-row a {
+    flex-shrink: 0;
+    font: inherit;
+    font-size: 0.8rem;
+    letter-spacing: 0.03em;
+    border: 1px solid #FFC928;
+    background: transparent;
+    color: #FFC928;
+    border-radius: 999px;
+    padding: 0.4rem 0.9rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .track-row button:hover,
+  .track-row a:hover {
+    background: #FFC928;
+    color: #003d25;
+  }
+</style>
+
+<script>
+(function () {
+  // ---- EDIT THIS ONE LINE -------------------------------------------
+  const PCLOUD_FOLDER_CODE = 'kZ0VW4JZARhG2q8K4nQdUzNBKJpeEk1uaayk';
+  // Get it from: pCloud > Public Folder > Share > Get Link.
+  // The code is the part after "code=" in that link.
+  // ---------------------------------------------------------------------
+
+  const listEl = document.getElementById('pcloud-player-list');
+  let activeAudio = null;
+  let activeBtn = null;
+
+  async function loadTracks() {
+    try {
+      const res = await fetch(`https://api.pcloud.com/showpublink?code=${PCLOUD_FOLDER_CODE}`);
+      const data = await res.json();
+      if (data.result !== 0 || !data.metadata || !data.metadata.contents) {
+        throw new Error('pCloud folder not found or not public');
+      }
+      const tracks = data.metadata.contents.filter(
+        (f) => !f.isfolder && /\.(mp3|wav|m4a|flac)$/i.test(f.name)
+      );
+      listEl.innerHTML = '';
+      if (!tracks.length) {
+        listEl.innerHTML = '<p class="pcloud-player__status">No tracks found yet.</p>';
+        return;
+      }
+      tracks.forEach(renderTrack);
+    } catch (err) {
+      console.error('pCloud player error:', err);
+      listEl.innerHTML =
+        '<p class="pcloud-player__status">Couldn\'t load tracks right now.</p>';
+    }
+  }
+
+  async function getDirectUrl(fileid) {
+    const res = await fetch(
+      `https://api.pcloud.com/getpublinkdownload?code=${PCLOUD_FOLDER_CODE}&fileid=${fileid}`
+    );
+    const data = await res.json();
+    if (data.result !== 0) throw new Error('Could not resolve file link');
+    return `https://${data.hosts[0]}${data.path}`;
+  }
+
+  function renderTrack(file) {
+    const row = document.createElement('div');
+    row.className = 'track-row';
+
+    const name = document.createElement('span');
+    name.className = 'track-name';
+    name.textContent = file.name.replace(/\.[^/.]+$/, '');
+
+    const playBtn = document.createElement('button');
+    playBtn.type = 'button';
+    playBtn.textContent = '▶ Preview';
+
+    const downloadBtn = document.createElement('a');
+    downloadBtn.textContent = '⬇ Download';
+    downloadBtn.href = '#';
+
+    let audioEl = null;
+    let cachedUrl = null;
+
+    async function ensureUrl() {
+      if (!cachedUrl) cachedUrl = await getDirectUrl(file.fileid);
+      return cachedUrl;
+    }
+
+    playBtn.addEventListener('click', async () => {
+      const url = await ensureUrl();
+
+      if (activeAudio && activeAudio !== audioEl) {
+        activeAudio.pause();
+        if (activeBtn) activeBtn.textContent = '▶ Preview';
+      }
+
+      if (!audioEl) {
+        audioEl = new Audio(url);
+        audioEl.addEventListener('ended', () => {
+          playBtn.textContent = '▶ Preview';
+        });
+      }
+
+      if (audioEl.paused) {
+        audioEl.play();
+        playBtn.textContent = '⏸ Pause';
+        activeAudio = audioEl;
+        activeBtn = playBtn;
+      } else {
+        audioEl.pause();
+        playBtn.textContent = '▶ Preview';
+      }
+    });
+
+    downloadBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const url = await ensureUrl();
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    });
+
+    row.appendChild(name);
+    row.appendChild(playBtn);
+    row.appendChild(downloadBtn);
+    listEl.appendChild(row);
+  }
+
+  loadTracks();
+})();
+</script>
+            
       <footer class="site-footer">
         <div class="footer-mark"><strong>JACKPOT</strong><span>LAS VEGAS</span></div>
         <p class="footer-copyright">© DJC</p>
