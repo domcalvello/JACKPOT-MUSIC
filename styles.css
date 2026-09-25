@@ -1258,4 +1258,67 @@ img {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
+
+  .pcloud-player {
+    max-width: 720px;
+    margin: 4rem auto;
+    padding: 0 1.25rem;
+    font-family: inherit;
+    color: #FFC928;
+  }
+  .pcloud-player__heading {
+    text-align: center;
+    letter-spacing: 0.08em;
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+    color: #FFC928;
+  }
+  .pcloud-player__status {
+    text-align: center;
+    opacity: 0.7;
+    font-size: 0.9rem;
+  }
+  .pcloud-player__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .track-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: #003d25;
+    border: 1px solid rgba(255, 201, 40, 0.25);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+  }
+  .track-row .track-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.95rem;
+  }
+  .track-row button,
+  .track-row a {
+    flex-shrink: 0;
+    font: inherit;
+    font-size: 0.8rem;
+    letter-spacing: 0.03em;
+    border: 1px solid #FFC928;
+    background: transparent;
+    color: #FFC928;
+    border-radius: 999px;
+    padding: 0.4rem 0.9rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .track-row button:hover,
+  .track-row a:hover {
+    background: #FFC928;
+    color: #003d25;
+  }
+
 }
