@@ -51,8 +51,22 @@ main {
   z-index: 1;
 }
 
-.slot-reels,
-.kinetic-type {
+main::before {
+  position: absolute;
+  z-index: 20;
+  inset: 0;
+  background-image: url("./media/confetti.webp");
+  background-position: center top;
+  background-repeat: repeat;
+  background-size: clamp(230px, 25vw, 360px) auto;
+  content: "";
+  filter: saturate(0.82) brightness(0.86);
+  mix-blend-mode: screen;
+  opacity: 0.035;
+  pointer-events: none;
+}
+
+.slot-reels {
   position: fixed;
   z-index: 0;
   inset: -14vh 0 auto;
@@ -101,24 +115,6 @@ main {
   color: #9e7a1d;
   transform: translate3d(0, -4%, 0);
 }
-
-.kinetic-type__word {
-  position: absolute;
-  color: transparent;
-  font-family: "Arial Black", "Helvetica Neue", sans-serif;
-  font-size: clamp(4.8rem, 15vw, 17rem);
-  font-weight: 900;
-  letter-spacing: -0.065em;
-  line-height: 0.78;
-  -webkit-text-stroke: 1px rgba(255, 201, 40, 0.17);
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.kinetic-type__word--jackpot { top: 17vh; right: -2vw; }
-.kinetic-type__word--house { top: 53vh; left: -4vw; }
-.kinetic-type__word--vegas { top: 83vh; right: -7vw; }
-.kinetic-type__word--ching { top: 112vh; left: 8vw; }
 
 .gold-cursor {
   position: fixed;
@@ -1189,8 +1185,7 @@ img {
   animation: gold-sweep 11s ease-in-out infinite 3s;
 }
 
-.pcloud-player__intro,
-.pcloud-player__status {
+.pcloud-player__intro {
   position: relative;
   margin: 0;
   color: rgba(255, 240, 166, 0.72);
@@ -1202,70 +1197,47 @@ img {
 }
 
 .pcloud-player__intro { margin-bottom: clamp(1.2rem, 3vw, 2rem); }
-.pcloud-player__status { padding: 1.2rem; }
 
-.pcloud-player__list {
+.pcloud-player__frame {
   position: relative;
-  display: grid;
-  gap: 0.7rem;
-}
-
-.track-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.82rem 0.9rem 0.82rem 1.1rem;
-  border: 1px solid rgba(255, 201, 40, 0.26);
-  border-radius: 12px;
-  background: linear-gradient(100deg, rgba(0, 122, 69, 0.32), rgba(3, 7, 4, 0.88));
-  box-shadow: inset 0 1px 0 rgba(255, 240, 166, 0.06);
-  transition:
-    border-color 200ms ease,
-    box-shadow 200ms ease,
-    transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.track-row:hover,
-.track-row:focus-within {
-  border-color: rgba(255, 218, 105, 0.66);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 240, 166, 0.1),
-    0 12px 28px rgba(0, 0, 0, 0.28);
-  transform: translate3d(4px, 0, 0);
-}
-
-.track-name {
-  min-width: 0;
   overflow: hidden;
-  color: var(--ivory);
-  font-size: clamp(0.82rem, 1.7vw, 1rem);
-  font-weight: 700;
-  letter-spacing: 0.025em;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  height: min(680px, 72vh);
+  min-height: 520px;
+  border: 1px solid rgba(255, 218, 105, 0.64);
+  border-radius: 12px;
+  background: #07110d;
+  box-shadow: 0 15px 32px rgba(0, 0, 0, 0.42);
 }
 
-.track-row button,
-.track-row a {
-  min-height: 38px;
-  padding: 0.55rem 0.82rem;
+.pcloud-player__frame iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #07110d;
+  filter: hue-rotate(315deg) saturate(1.18);
+}
+
+.pcloud-player__open {
+  min-height: 44px;
+  width: fit-content;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 1rem auto 0;
+  padding: 0.75rem 1.2rem;
   border: 1px solid rgba(255, 218, 105, 0.72);
   border-radius: 999px;
   background: transparent;
   color: var(--gold-light);
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.61rem;
+  font-size: 0.68rem;
   font-weight: 900;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.16em;
   line-height: 1;
   text-decoration: none;
   transition: background 160ms ease, color 160ms ease, transform 160ms ease;
 }
 
-.track-row button:hover,
-.track-row a:hover {
+.pcloud-player__open:hover {
   background: var(--gold-bright);
   color: #221500;
   transform: translateY(-1px);
@@ -1660,17 +1632,9 @@ img {
     justify-self: center;
   }
 
-  .track-row {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .track-name {
-    grid-column: 1 / -1;
-  }
-
-  .track-row button,
-  .track-row a {
-    width: 100%;
+  .pcloud-player__frame {
+    height: 70vh;
+    min-height: 480px;
   }
 }
 
@@ -1700,7 +1664,6 @@ img {
 
 @media (max-width: 720px), (hover: none), (pointer: coarse) {
   .slot-reels { opacity: 0.09; }
-  .kinetic-type__word { -webkit-text-stroke-color: rgba(255, 201, 40, 0.1); }
   .gold-cursor,
   .gold-cursor__coin,
   .surface-glint { display: none; }

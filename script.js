@@ -9,7 +9,6 @@
     const logo = document.querySelector("[data-jackpot-logo]");
     const burst = document.querySelector(".jackpot-burst");
     const reels = document.querySelector(".slot-reels");
-    const kineticType = document.querySelector(".kinetic-type");
     const tiltCards = document.querySelectorAll(".media-bay, .u-win-art-bezel");
     const reactiveSurfaces = document.querySelectorAll(".hero-marquee-inner, .pcloud-player");
 
@@ -118,12 +117,11 @@
       });
     }
 
-    if (motionAllowed && reels && kineticType) {
+    if (motionAllowed && reels) {
       let ticking = false;
       const updateParallax = () => {
         const scrollY = window.scrollY;
         reels.style.transform = `translate3d(0, ${scrollY * -0.055}px, 0)`;
-        kineticType.style.transform = `translate3d(0, ${scrollY * -0.025}px, 0)`;
         ticking = false;
       };
       window.addEventListener("scroll", () => {
@@ -340,115 +338,4 @@
   youtubeApi.src = "https://www.youtube.com/iframe_api";
   youtubeApi.async = true;
   document.head.appendChild(youtubeApi);
-})();
-
-(function () {
-  
-  const PCLOUD_FOLDER_CODE = 'kZ0VW4JZARhG2q8K4nQdUzNBKJpeEk1uaayk';
-  const listEl = document.getElementById('pcloud-player-list');
-  let activeAudio = null;
-  let activeBtn = null;
-
-  async function loadTracks() {
-    try {
-      const res = await fetch(`https://api.pcloud.com/showpublink?code=${PCLOUD_FOLDER_CODE}`);
-      const data = await res.json();
-      if (data.result !== 0 || !data.metadata || !data.metadata.contents) {
-        throw new Error('pCloud folder not found or not public');
-      }
-      const tracks = data.metadata.contents.filter(
-        (f) => !f.isfolder && /\.(mp3|wav|m4a|flac)$/i.test(f.name)
-      );
-      listEl.innerHTML = '';
-      if (!tracks.length) {
-        listEl.innerHTML = '<p class="pcloud-player__status">No tracks found yet.</p>';
-        return;
-      }
-      tracks.forEach(renderTrack);
-    } catch (err) {
-      console.error('pCloud player error:', err);
-      listEl.innerHTML =
-        '<p class="pcloud-player__status">Couldn\'t load tracks right now.</p>';
-    }
-  }
-
-  async function getDirectUrl(fileid) {
-    const res = await fetch(
-      `https://api.pcloud.com/getpublinkdownload?code=${PCLOUD_FOLDER_CODE}&fileid=${fileid}`
-    );
-    const data = await res.json();
-    if (data.result !== 0) throw new Error('Could not resolve file link');
-    return `https://${data.hosts[0]}${data.path}`;
-  }
-
-  function renderTrack(file) {
-    const row = document.createElement('div');
-    row.className = 'track-row';
-
-    const name = document.createElement('span');
-    name.className = 'track-name';
-    name.textContent = file.name.replace(/\.[^/.]+$/, '');
-
-    const playBtn = document.createElement('button');
-    playBtn.type = 'button';
-    playBtn.textContent = 'PLAY';
-    playBtn.dataset.cursorLabel = 'PLAY';
-
-    const downloadBtn = document.createElement('a');
-    downloadBtn.textContent = 'GET FILE';
-    downloadBtn.dataset.cursorLabel = 'OPEN';
-    downloadBtn.href = '#';
-
-    let audioEl = null;
-    let cachedUrl = null;
-
-    async function ensureUrl() {
-      if (!cachedUrl) cachedUrl = await getDirectUrl(file.fileid);
-      return cachedUrl;
-    }
-
-    playBtn.addEventListener('click', async () => {
-      const url = await ensureUrl();
-
-      if (activeAudio && activeAudio !== audioEl) {
-        activeAudio.pause();
-        if (activeBtn) activeBtn.textContent = 'PLAY';
-      }
-
-      if (!audioEl) {
-        audioEl = new Audio(url);
-        audioEl.addEventListener('ended', () => {
-          playBtn.textContent = 'PLAY';
-        });
-      }
-
-      if (audioEl.paused) {
-        audioEl.play();
-        playBtn.textContent = 'PAUSE';
-        activeAudio = audioEl;
-        activeBtn = playBtn;
-      } else {
-        audioEl.pause();
-        playBtn.textContent = 'PLAY';
-      }
-    });
-
-    downloadBtn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      const url = await ensureUrl();
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = file.name;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    });
-
-    row.appendChild(name);
-    row.appendChild(playBtn);
-    row.appendChild(downloadBtn);
-    listEl.appendChild(row);
-  }
-
-  loadTracks();
 })();
