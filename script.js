@@ -1,6 +1,238 @@
 (() => {
   "use strict";
 
+  const motionAllowed = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function initializeLuxuryMotion() {
+    const cursor = document.querySelector(".gold-cursor");
+    const cursorLabel = cursor?.querySelector(".gold-cursor__label");
+    const logo = document.querySelector("[data-jackpot-logo]");
+    const burst = document.querySelector(".jackpot-burst");
+    const reels = document.querySelector(".slot-reels");
+    const kineticType = document.querySelector(".kinetic-type");
+    const tiltCards = document.querySelectorAll(".media-bay, .u-win-art-bezel");
+    const reactiveSurfaces = document.querySelectorAll(".hero-marquee-inner, .pcloud-player");
+
+    if (motionAllowed && window.matchMedia("(hover: hover) and (pointer: fine)").matches && cursor) {
+      let targetX = window.innerWidth / 2;
+      let targetY = window.innerHeight / 2;
+      let currentX = targetX;
+      let currentY = targetY;
+      let lastCoinX = targetX;
+      let lastCoinY = targetY;
+      let lastCoinTime = 0;
+      let cursorFrame = null;
+      let hasPointer = false;
+      let coinIndex = 0;
+
+      const coinSymbols = ["J", "$", "7", "♠"];
+      const coinPool = Array.from({ length: 40 }, (_, index) => {
+        const coin = document.createElement("span");
+        coin.className = "gold-cursor__coin";
+        coin.textContent = coinSymbols[index % coinSymbols.length];
+        document.body.append(coin);
+        return coin;
+      });
+
+      const spawnCoin = (x, y) => {
+        const coin = coinPool[coinIndex % coinPool.length];
+        const variant = coinIndex % 7;
+        const direction = coinIndex % 2 ? 1 : -1;
+        const driftX = direction * (8 + variant * 2.4);
+        const driftY = 22 + (variant % 4) * 7;
+        const rotation = direction * (70 + variant * 19);
+        const startScale = 0.56 + (variant % 3) * 0.1;
+        coinIndex += 1;
+
+        coin.getAnimations().forEach((animation) => animation.cancel());
+        coin.textContent = coinSymbols[coinIndex % coinSymbols.length];
+        coin.style.willChange = "transform, opacity";
+        const animation = coin.animate([
+          {
+            opacity: 0.86,
+            transform: `translate3d(${x}px, ${y}px, 0) translate3d(-50%, -50%, 0) rotateY(0deg) rotateZ(0deg) scale(${startScale})`,
+          },
+          {
+            offset: 0.42,
+            opacity: 0.7,
+            transform: `translate3d(${x + driftX * 0.55}px, ${y + driftY * 0.28}px, 0) translate3d(-50%, -50%, 0) rotateY(155deg) rotateZ(${rotation * 0.45}deg) scale(${startScale + 0.18})`,
+          },
+          {
+            opacity: 0,
+            transform: `translate3d(${x + driftX}px, ${y + driftY}px, 0) translate3d(-50%, -50%, 0) rotateY(360deg) rotateZ(${rotation}deg) scale(${startScale * 0.72})`,
+          },
+        ], {
+          duration: 2000,
+          easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+          fill: "forwards",
+        });
+        animation.finished.then(() => {
+          animation.cancel();
+          coin.style.willChange = "auto";
+        }, () => {});
+      };
+
+      const renderCursor = (now) => {
+        currentX += (targetX - currentX) * 0.19;
+        currentY += (targetY - currentY) * 0.19;
+        cursor.style.setProperty("--cursor-x", `${currentX}px`);
+        cursor.style.setProperty("--cursor-y", `${currentY}px`);
+
+        const coinDistance = Math.hypot(currentX - lastCoinX, currentY - lastCoinY);
+        if (coinDistance > 11 && now - lastCoinTime > 52) {
+          spawnCoin(currentX, currentY);
+          lastCoinX = currentX;
+          lastCoinY = currentY;
+          lastCoinTime = now;
+        }
+
+        if (Math.hypot(targetX - currentX, targetY - currentY) > 0.12) {
+          cursorFrame = requestAnimationFrame(renderCursor);
+        } else {
+          cursorFrame = null;
+        }
+      };
+
+      window.addEventListener("pointermove", (event) => {
+        targetX = event.clientX;
+        targetY = event.clientY;
+        if (!hasPointer) {
+          currentX = targetX;
+          currentY = targetY;
+          lastCoinX = targetX;
+          lastCoinY = targetY;
+          cursor.style.setProperty("--cursor-x", `${currentX}px`);
+          cursor.style.setProperty("--cursor-y", `${currentY}px`);
+          hasPointer = true;
+        }
+        cursor.classList.add("is-visible");
+        const interactive = event.target.closest("[data-cursor-label], a, button, iframe");
+        cursor.classList.toggle("is-interactive", Boolean(interactive));
+        cursorLabel.textContent = interactive?.dataset.cursorLabel || (interactive?.tagName === "IFRAME" ? "LISTEN" : interactive ? "OPEN" : "");
+        if (!cursorFrame) cursorFrame = requestAnimationFrame(renderCursor);
+      }, { passive: true });
+      document.addEventListener("pointerdown", () => cursor.classList.add("is-pressed"));
+      document.addEventListener("pointerup", () => cursor.classList.remove("is-pressed"));
+      document.addEventListener("pointerleave", (event) => {
+        if (event.relatedTarget === null) cursor.classList.remove("is-visible");
+      });
+    }
+
+    if (motionAllowed && reels && kineticType) {
+      let ticking = false;
+      const updateParallax = () => {
+        const scrollY = window.scrollY;
+        reels.style.transform = `translate3d(0, ${scrollY * -0.055}px, 0)`;
+        kineticType.style.transform = `translate3d(0, ${scrollY * -0.025}px, 0)`;
+        ticking = false;
+      };
+      window.addEventListener("scroll", () => {
+        if (!ticking) {
+          ticking = true;
+          requestAnimationFrame(updateParallax);
+        }
+      }, { passive: true });
+      updateParallax();
+    }
+
+    if (motionAllowed) {
+      tiltCards.forEach((card) => {
+        card.classList.add("is-tiltable");
+        let frame = null;
+        let bounds = null;
+        let pointerX = 0;
+        let pointerY = 0;
+        card.addEventListener("pointerenter", () => {
+          bounds = card.getBoundingClientRect();
+          card.classList.add("is-tilt-active");
+        }, { passive: true });
+        card.addEventListener("pointermove", (event) => {
+          if (!bounds) return;
+          pointerX = (event.clientX - bounds.left) / bounds.width;
+          pointerY = (event.clientY - bounds.top) / bounds.height;
+          if (!frame) {
+            frame = requestAnimationFrame(() => {
+              const rotateY = (pointerX - 0.5) * 5;
+              const rotateX = (pointerY - 0.5) * -5;
+              card.style.setProperty("--tilt-x", `${rotateX.toFixed(2)}deg`);
+              card.style.setProperty("--tilt-y", `${rotateY.toFixed(2)}deg`);
+              card.style.setProperty("--sheen-x", `${((pointerX - 0.5) * 16).toFixed(2)}%`);
+              card.style.setProperty("--sheen-y", `${((pointerY - 0.5) * 10).toFixed(2)}%`);
+              frame = null;
+            });
+          }
+        }, { passive: true });
+        card.addEventListener("pointerleave", () => {
+          bounds = null;
+          card.classList.remove("is-tilt-active");
+          card.style.setProperty("--tilt-x", "0deg");
+          card.style.setProperty("--tilt-y", "0deg");
+          card.style.setProperty("--sheen-x", "0%");
+          card.style.setProperty("--sheen-y", "0%");
+        });
+      });
+
+      reactiveSurfaces.forEach((surface) => {
+        const glint = document.createElement("span");
+        glint.className = "surface-glint";
+        surface.classList.add("is-surface-reactive");
+        surface.append(glint);
+
+        let bounds = null;
+        let frame = null;
+        let x = 0;
+        let y = 0;
+        surface.addEventListener("pointerenter", () => {
+          bounds = surface.getBoundingClientRect();
+          surface.classList.add("is-surface-active");
+        }, { passive: true });
+        surface.addEventListener("pointermove", (event) => {
+          if (!bounds) return;
+          x = event.clientX - bounds.left;
+          y = event.clientY - bounds.top;
+          if (!frame) {
+            frame = requestAnimationFrame(() => {
+              glint.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translate3d(-50%, -50%, 0)`;
+              frame = null;
+            });
+          }
+        }, { passive: true });
+        surface.addEventListener("pointerleave", () => {
+          bounds = null;
+          surface.classList.remove("is-surface-active");
+        });
+      });
+    }
+
+    const celebrate = () => {
+      if (!burst) return;
+      burst.replaceChildren();
+      burst.classList.remove("is-active");
+      void burst.offsetWidth;
+      burst.classList.add("is-active");
+      burst.setAttribute("aria-label", "JACKPOT");
+      ["777", "$", "♠", "◆", "J", "★", "$", "777"].forEach((symbol, index) => {
+        const chip = document.createElement("span");
+        const angle = (Math.PI * 2 * index) / 8 - Math.PI / 2;
+        chip.textContent = symbol;
+        chip.style.setProperty("--burst-x", `${Math.cos(angle) * (74 + (index % 2) * 30)}px`);
+        chip.style.setProperty("--burst-y", `${Math.sin(angle) * (74 + (index % 3) * 18)}px`);
+        chip.style.setProperty("--burst-delay", `${index * 18}ms`);
+        burst.append(chip);
+      });
+      window.setTimeout(() => burst.classList.remove("is-active"), 1050);
+    };
+
+    logo?.addEventListener("click", (event) => {
+      if (event.detail === 3) celebrate();
+    });
+    logo?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") celebrate();
+    });
+  }
+
+  initializeLuxuryMotion();
+
   const profileFrame = document.querySelector("#soundcloud-profile");
   const uWinFrame = document.querySelector("#soundcloud-uwin");
   const youtubeFrame = document.querySelector("#youtube-player");
@@ -159,10 +391,12 @@
 
     const playBtn = document.createElement('button');
     playBtn.type = 'button';
-    playBtn.textContent = '▶ Preview';
+    playBtn.textContent = 'PLAY';
+    playBtn.dataset.cursorLabel = 'PLAY';
 
     const downloadBtn = document.createElement('a');
-    downloadBtn.textContent = '⬇ Download';
+    downloadBtn.textContent = 'GET FILE';
+    downloadBtn.dataset.cursorLabel = 'OPEN';
     downloadBtn.href = '#';
 
     let audioEl = null;
@@ -178,24 +412,24 @@
 
       if (activeAudio && activeAudio !== audioEl) {
         activeAudio.pause();
-        if (activeBtn) activeBtn.textContent = '▶ Preview';
+        if (activeBtn) activeBtn.textContent = 'PLAY';
       }
 
       if (!audioEl) {
         audioEl = new Audio(url);
         audioEl.addEventListener('ended', () => {
-          playBtn.textContent = '▶ Preview';
+          playBtn.textContent = 'PLAY';
         });
       }
 
       if (audioEl.paused) {
         audioEl.play();
-        playBtn.textContent = '⏸ Pause';
+        playBtn.textContent = 'PAUSE';
         activeAudio = audioEl;
         activeBtn = playBtn;
       } else {
         audioEl.pause();
-        playBtn.textContent = '▶ Preview';
+        playBtn.textContent = 'PLAY';
       }
     });
 
