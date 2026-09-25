@@ -109,3 +109,112 @@
   youtubeApi.async = true;
   document.head.appendChild(youtubeApi);
 })();
+
+(function () {
+  
+  const PCLOUD_FOLDER_CODE = 'kZ0VW4JZARhG2q8K4nQdUzNBKJpeEk1uaayk';
+  const listEl = document.getElementById('pcloud-player-list');
+  let activeAudio = null;
+  let activeBtn = null;
+
+  async function loadTracks() {
+    try {
+      const res = await fetch(`https://api.pcloud.com/showpublink?code=${PCLOUD_FOLDER_CODE}`);
+      const data = await res.json();
+      if (data.result !== 0 || !data.metadata || !data.metadata.contents) {
+        throw new Error('pCloud folder not found or not public');
+      }
+      const tracks = data.metadata.contents.filter(
+        (f) => !f.isfolder && /\.(mp3|wav|m4a|flac)$/i.test(f.name)
+      );
+      listEl.innerHTML = '';
+      if (!tracks.length) {
+        listEl.innerHTML = '<p class="pcloud-player__status">No tracks found yet.</p>';
+        return;
+      }
+      tracks.forEach(renderTrack);
+    } catch (err) {
+      console.error('pCloud player error:', err);
+      listEl.innerHTML =
+        '<p class="pcloud-player__status">Couldn\'t load tracks right now.</p>';
+    }
+  }
+
+  async function getDirectUrl(fileid) {
+    const res = await fetch(
+      `https://api.pcloud.com/getpublinkdownload?code=${PCLOUD_FOLDER_CODE}&fileid=${fileid}`
+    );
+    const data = await res.json();
+    if (data.result !== 0) throw new Error('Could not resolve file link');
+    return `https://${data.hosts[0]}${data.path}`;
+  }
+
+  function renderTrack(file) {
+    const row = document.createElement('div');
+    row.className = 'track-row';
+
+    const name = document.createElement('span');
+    name.className = 'track-name';
+    name.textContent = file.name.replace(/\.[^/.]+$/, '');
+
+    const playBtn = document.createElement('button');
+    playBtn.type = 'button';
+    playBtn.textContent = '▶ Preview';
+
+    const downloadBtn = document.createElement('a');
+    downloadBtn.textContent = '⬇ Download';
+    downloadBtn.href = '#';
+
+    let audioEl = null;
+    let cachedUrl = null;
+
+    async function ensureUrl() {
+      if (!cachedUrl) cachedUrl = await getDirectUrl(file.fileid);
+      return cachedUrl;
+    }
+
+    playBtn.addEventListener('click', async () => {
+      const url = await ensureUrl();
+
+      if (activeAudio && activeAudio !== audioEl) {
+        activeAudio.pause();
+        if (activeBtn) activeBtn.textContent = '▶ Preview';
+      }
+
+      if (!audioEl) {
+        audioEl = new Audio(url);
+        audioEl.addEventListener('ended', () => {
+          playBtn.textContent = '▶ Preview';
+        });
+      }
+
+      if (audioEl.paused) {
+        audioEl.play();
+        playBtn.textContent = '⏸ Pause';
+        activeAudio = audioEl;
+        activeBtn = playBtn;
+      } else {
+        audioEl.pause();
+        playBtn.textContent = '▶ Preview';
+      }
+    });
+
+    downloadBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const url = await ensureUrl();
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    });
+
+    row.appendChild(name);
+    row.appendChild(playBtn);
+    row.appendChild(downloadBtn);
+    listEl.appendChild(row);
+  }
+
+  loadTracks();
+})();
