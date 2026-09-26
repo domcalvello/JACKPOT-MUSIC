@@ -1210,11 +1210,37 @@ img {
 }
 
 .pcloud-player__frame iframe {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   border: 0;
   background: #07110d;
   filter: hue-rotate(315deg) saturate(1.18);
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.pcloud-player__frame iframe.is-loaded {
+  opacity: 1;
+}
+
+.pcloud-player__loading {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--gold-bright);
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  opacity: 1;
+  transition: opacity 180ms ease;
+}
+
+.pcloud-player__loading.is-hidden {
+  opacity: 0;
 }
 
 .pcloud-player__open {

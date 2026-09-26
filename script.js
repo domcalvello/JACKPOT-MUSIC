@@ -3,6 +3,40 @@
 
   const motionAllowed = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  if (!window.location.hash && "scrollRestoration" in history) {
+    history.scrollRestoration = "manual";
+  }
+
+  function initializePcloudPlayer() {
+    const section = document.querySelector("#pcloud-tracks");
+    const frame = document.querySelector("[data-pcloud-frame]");
+    const loading = document.querySelector("[data-pcloud-loading]");
+    if (!section || !frame || !frame.dataset.src) return;
+
+    const loadPlayer = () => {
+      if (frame.dataset.loaded === "true") return;
+      frame.dataset.loaded = "true";
+      frame.addEventListener("load", () => {
+        frame.classList.add("is-loaded");
+        loading?.classList.add("is-hidden");
+      }, { once: true });
+      frame.src = frame.dataset.src;
+    };
+
+    if (!("IntersectionObserver" in window)) {
+      loadPlayer();
+      return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return;
+      observer.disconnect();
+      loadPlayer();
+    }, { threshold: 0.01 });
+
+    observer.observe(section);
+  }
+
   function initializeLuxuryMotion() {
     const cursor = document.querySelector(".gold-cursor");
     const cursorLabel = cursor?.querySelector(".gold-cursor__label");
@@ -230,6 +264,7 @@
   }
 
   initializeLuxuryMotion();
+  initializePcloudPlayer();
 
   const profileFrame = document.querySelector("#soundcloud-profile");
   const uWinFrame = document.querySelector("#soundcloud-uwin");
